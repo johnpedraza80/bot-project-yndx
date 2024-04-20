@@ -1,0 +1,47 @@
+
+import discord
+from discord.ext import commands
+import numpy as np
+
+# Создание объекта интентов
+intents = discord.Intents.all()
+
+# Создание бота с префиксом "!" и указанием интентов
+bot = commands.Bot(command_prefix='!', intents=intents)
+
+
+# Обработчик события "on_ready" - вызывается, когда бот успешно запускается
+@bot.event
+async def on_ready():
+    print(f'Бот {bot.user.name} готов к работе!')
+    print('------')
+
+
+# Простая команда
+@bot.command(name='привет', help='Отправить приветственное сообщение')
+async def greet(ctx):
+    await ctx.send(f'Привет, {ctx.author.name}!')
+
+class OneHotEncoder:
+    def __init__(self):
+        self.mapping = {}
+
+    def fit(self, categorical_data):
+        unique_values = np.unique(categorical_data)
+        self.mapping = {value: i for i, value in enumerate(unique_values)}
+
+    def transform(self, categorical_data):
+        num_objects = len(categorical_data)
+        num_values = len(self.mapping)
+        one_hot_matrix = np.zeros((num_objects, num_values), dtype=int)
+
+        for i, value in enumerate(categorical_data):
+            one_hot_matrix[i, self.mapping[value]] = 1
+
+        return one_hot_matrix
+
+def onehot_encoding(categorical_data):
+    encoder = OneHotEncoder()
+    encoder.fit(categorical_data)
+    one_hot_matrix = encoder.transform(categorical_data)
+    return one_hot_matrix
