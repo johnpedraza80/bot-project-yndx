@@ -5,26 +5,50 @@ from discord.ext import commands
 from discord.utils import get
 import yt_dlp
 import sqlite3
+import pyttsx3
+from pydub import AudioSegment
+import speech_recognition as sr
 import buttons
-from poker_configs import *
+
+from time import sleep
+
 
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 CHANNEL_LINK = 1216341359556821093
 
+r = sr.Recognizer()
+
+# Настройка механизма преобразования текста
+engine = pyttsx3.init()
+
 # Настройка аудиоплеера
 player = None
 
 con = sqlite3.connect("data/poker_players.sqlite")
 cursor = con.cursor()
-some_dict = dict_cards
+some_dict = {
+    '2': ['♥', '♣', '♠', '♦'],
+    '3': ['♥', '♣', '♠', '♦'],
+    '4': ['♥', '♣', '♠', '♦'],
+    '5': ['♥', '♣', '♠', '♦'],
+    '6': ['♥', '♣', '♠', '♦'],
+    '7': ['♥', '♣', '♠', '♦'],
+    '8': ['♥', '♣', '♠', '♦'],
+    '9': ['♥', '♣', '♠', '♦'],
+    '10': ['♥', '♣', '♠', '♦'],
+    'J': ['♥', '♣', '♠', '♦'],
+    'Q': ['♥', '♣', '♠', '♦'],
+    'K': ['♥', '♣', '♠', '♦'],
+    'A': ['♥', '♣', '♠', '♦']
+}
 
 
 # Событие при подключении бота на сервер
 @bot.event
 async def on_ready():
-    CHANNEL_LINK = 1231264616596639827
+    CHANNEL_LINK = 1216341359556821093
     channel = bot.get_channel(CHANNEL_LINK)
     await channel.send("""
         Привет, я бот Makson. Чтобы ознакомится с моими командами просто напиши /info
@@ -129,6 +153,39 @@ async def play(message, url: str):
         """)
 
 
+# Прослушиваем речь и воспроизводим музыку
+@bot.command()
+async def listen(ctx):
+    # Получить голосовой клиент
+    voice_client = ctx.message.guild.voice_client
+
+    # Записать аудио
+    with sr.AudioFile(voice_client.source.read()) as source:
+        audio = r.record(source)
+
+    # Распознавание речи
+    try:
+        text = r.recognize_google(audio)
+    except:
+        await ctx.send("Извините, я не понял, что вы сказали.")
+        return
+
+    # Воспроизведите запрошенную музыку
+    if text.lower() == "play music":
+        # Получите путь к музыкальному файлу
+        music_file = "path/to/music/file.mp3"
+
+        # Преобразовать музыкальный файл в формат, который может воспроизводиться ботом
+        audio = AudioSegment.from_file(music_file, format="mp3")
+        audio = audio.set_frame_rate(48000)
+        audio = audio.set_channels(2)
+        audio = audio.export("temp.wav", format="wav")
+
+        # Воспроизведение музыки
+        player = await voice_client.create_ffmpeg_player("temp.wav")
+        player.start()
+
+
 # ИГРА ПОКЕР
 
 @bot.command()
@@ -136,7 +193,7 @@ async def poker(ctx):
     data = cursor.execute(f"SELECT * FROM session WHERE names='{ctx.author}'").fetchall()
 
     if data:
-        await ctx.reply("```Вы уже внесены в сессию, напишите /start_session для начала игры.```")
+        await ctx.reply("```Вы уже внесены в сессию, напишите /startgame для начала игры.```")
         return
     await ctx.author.send(view=buttons.Buttons(), delete_after=10)
     await ctx.message.delete()
@@ -146,17 +203,20 @@ async def poker(ctx):
 async def startgame(ctx):
     global some_dict
     data = cursor.execute(f"SELECT names FROM session").fetchall()
+    await ctx.send("```До итогов 10 секунд, всем были отправлены их карты в личные сообщения```")
 
-    if len(data) < 2:
-        await ctx.reply("```Недостаточно игроков, нужно хотябы 2```")
+    if len(list(data)) < 1:
+        await ctx.reply("Недостаточно игроков, нужно как минимум 2")
         return
 
     for name in list(data):
         user = discord.utils.find(lambda m: str(m) == f'{name[0]}', bot.users)
         pare = chosing_pare()
         cards_in_data(name[0], pare)
-        await user.send(f"Ваши карты: {pare[0]}, {pare[1]}")
+        await user.send(f"``` Ваши карты: {', '.join(list(pare))} ```")
+    sleep(9)
     table = chosing_table()
+
     await ctx.send(', '.join(list(table)))
     await ctx.send("```Победила дружба!```")
     some_dict = {
@@ -190,10 +250,15 @@ def chosing_table():
         else:
 
             mast1 = random.choice(some_dict[card[0]])
+            del some_dict[card[0]][some_dict[card[0]].index(mast1)]
             mast2 = random.choice(some_dict[card[1]])
+            del some_dict[card[1]][some_dict[card[1]].index(mast2)]
             mast3 = random.choice(some_dict[card[2]])
+            del some_dict[card[2]][some_dict[card[2]].index(mast3)]
             mast4 = random.choice(some_dict[card[3]])
+            del some_dict[card[3]][some_dict[card[3]].index(mast4)]
             mast5 = random.choice(some_dict[card[4]])
+            del some_dict[card[4]][some_dict[card[4]].index(mast5)]
             return card[0] + mast1, card[1] + mast2, card[2] + mast3, card[3] + mast4, card[4] + mast5
 
 
@@ -215,5 +280,5 @@ def chosing_pare():
             return card[0] + mast1, card[1] + mast2
 
 
-TOKEN = "MTIzMTI2NDg1Mzg5Nzc3NzI2NQ.G3hggZ.WBQrjayHNdGpsgmtWMNYG5b8Q2dG3dIQJdPKrE"
+TOKEN = "MTIyNjEzMDkzNzkxODc4MzU1OQ.GG0UH5.1rrqZgTfAe27BCiWacSh07B5ozkS78gxbIEIkg"
 bot.run(TOKEN)
