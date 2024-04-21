@@ -16,7 +16,7 @@ from time import sleep
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="/", intents=intents)
-CHANNEL_LINK = 1216341359556821093
+CHANNEL_LINK = 1216341359556821093 # КАНАЛ куда должно прийти приветсвенное сообщение
 
 r = sr.Recognizer()
 
@@ -280,5 +280,5 @@ def chosing_pare():
             return card[0] + mast1, card[1] + mast2
 
 
-TOKEN = "MTIyNjEzMDkzNzkxODc4MzU1OQ.GG0UH5.1rrqZgTfAe27BCiWacSh07B5ozkS78gxbIEIkg"
+TOKEN = ""
 bot.run(TOKEN)
